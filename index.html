@@ -1,0 +1,222 @@
+<html>
+  <head>
+    <script
+      src="https://code.jquery.com/jquery-latest.min.js"
+      type="text/javascript"
+    ></script>
+    <link
+      href="https://fonts.googleapis.com/css?family=Dosis:300,400,700"
+      rel="stylesheet"
+    />
+    <script src="https://www.gstatic.com/firebasejs/4.3.1/firebase.js"></script>
+    <script>
+      var config = {
+        apiKey: "AIzaSyA1jiSutjiYgAZc2sNPMmnpyaVP0oh-0m8",
+        authDomain: "todo-list-juni.firebaseapp.com",
+        databaseURL: "https://todo-list-juni.firebaseio.com",
+        projectId: "todo-list-juni",
+        storageBucket: "todo-list-juni.appspot.com",
+        messagingSenderId: "539012823247"
+      };
+      firebase.initializeApp(config);
+    </script>
+    <title>Todo - Juni Learning Web Applications Project</title>
+
+    <style>
+      body {
+        font-family: "Dosis";
+        font-weight: 300;
+        background-color: rgb(85, 90, 224);
+        text-align: center;
+        color: #333;
+      }
+      .container {
+        margin-top: 20px;
+        border-radius: 10px;
+        background-color: rgb(255, 255, 255);
+        display: inline-block;
+        width: 40%;
+        box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.24);
+      }
+      .header {
+        font-size: 60px;
+        padding: 15px;
+        position: relative;
+        border-bottom: 2px solid #efefef;
+      }
+      .add {
+        border-radius: 50%;
+        background-color: rgb(251, 104, 106);
+        position: absolute;
+        bottom: -25px;
+        right: 25px;
+        font-size: 50px;
+        color: #fff;
+        width: 50px;
+        height: 50px;
+        line-height: 37px;
+        cursor: pointer;
+      }
+      .todo {
+        text-align: left;
+        background: rgb(248, 248, 248);
+        border-bottom: 1px solid #efefef;
+        padding: 15px;
+        font-size: 20px;
+      }
+      .todo:first-of-type {
+        padding-top: 50px;
+      }
+      .todo img {
+        float: right;
+        width: 16px;
+        opacity: 0.5;
+        margin-top: 6px;
+        margin-right: 2px;
+        margin-left: 8px;
+        cursor: pointer;
+        transition: 0.3s;
+      }
+      .todo img:hover {
+        opacity: 0.9;
+      }
+      .todo-add {
+        display: none;
+      }
+      input[type="text"] {
+        padding: 5px 10px;
+        border: 1px solid #efefef;
+        font-size: 18px;
+        outline: none;
+        width: 100%;
+        box-sizing: border-box;
+        font-family: "Dosis";
+      }
+      input[type="checkbox"] {
+        margin-right: 10px;
+      }
+      .footer {
+        margin: 50px 0px;
+        color: #fff;
+      }
+      .footer a {
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+      $(document).ready(function() {
+        // listen for todos
+        var todoRef = firebase.database().ref("todos");
+        todoRef.on("value", function(snapshot) {
+          loadTodos(snapshot.val());
+        });
+
+        function loadTodos(todos) {
+          $(".todos").html(""); // clear .todos
+
+          for (key in todos) {
+            var todoText = todos[key].text;
+            var textDecoration = "none";
+            if (todos[key].complete) {
+              textDecoration = "line-through";
+            }
+
+            // add .todo for this item
+            var todo = $("<div></div>", {
+              class: "todo",
+              id: key,
+              text: todoText,
+              style: "text-decoration: " + textDecoration
+            }).prependTo(".todos");
+
+            $("<img>", {
+              class: "delete",
+              src: "images/delete_icon.png",
+              click: function() {
+                deleteItem($(this));
+              }
+            }).appendTo(todo);
+
+            $("<input></input>", {
+              type: "checkbox",
+              change: function() {
+                checkItem($(this));
+              },
+              checked: todos[key].complete
+            }).prependTo(todo);
+          }
+        }
+
+        // when item is checked
+        function checkItem(elem) {
+          var updatedCompleteValue = true;
+          if (elem.prop("checked")) {
+            elem.parent().css("text-decoration", "line-through");
+          } else {
+            updatedCompleteValue = false;
+            elem.parent().css("text-decoration", "none");
+          }
+
+          // update in db
+          var updates = {};
+          var id = elem.parent().attr("id");
+          updates["/todos/" + id + "/complete"] = updatedCompleteValue;
+          firebase
+            .database()
+            .ref()
+            .update(updates);
+        }
+
+        // when item is deleted
+        function deleteItem(elem) {
+          var id = elem.parent().attr("id");
+          firebase
+            .database()
+            .ref("/todos/" + id)
+            .remove();
+        }
+
+        // when add icon is clicked
+        $(".add").click(function() {
+          $(".todo-add").fadeIn("fast");
+          $("input[type='text']").focus();
+          $(".todo").css("padding-top", "15px");
+          $(".todo-add").css("padding-top", "50px");
+        });
+
+        // when item is added
+        $("input[type='text']").keypress(function(e) {
+          var parent = $(this).parent();
+
+          if (e.which == 13) {
+            // save to db
+            var todoText = $("input[type='text']").val();
+            firebase
+              .database()
+              .ref("todos")
+              .push({ text: todoText, complete: false });
+
+            // clear input and hide div
+            $(this).val("");
+            parent.hide();
+
+            return false;
+          }
+        });
+      });
+    </script>
+
+    <div class="container">
+      <div class="header">
+        todos
+        <div class="add">+</div>
+      </div>
+      <div class="todo todo-add" id="one">
+        <input type="text" />
+      </div>
+      <div class="todos"></div>
+    </div>
+  </body>
+</html>
